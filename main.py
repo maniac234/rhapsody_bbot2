@@ -21,14 +21,14 @@ def webhook():
         if trigger in text:
             keyboard = {
                 "inline_keyboard": [
-                    [{"text": "Vá para a Loja", "url": "https://rhapsody.criptocash.app/"}]
+                    [{"text": "🛒 Vá para a Loja", "url": "https://rhapsody.criptocash.app/"}]
                 ]
             }
             
             payload = {
                 "chat_id": chat_id,
                 "video": "BAACAgEAAxkBAAMyaTtJds7IEDJZKrPlUClLPkQ6gdsAAsMGAAKQcthFypomT3bj9iM2BA",
-                "caption": "Aqui está como comprar $RHAP!",
+                "caption": "🎥 Aqui está como comprar $RHAP!",
                 "reply_markup": keyboard
             }
             
