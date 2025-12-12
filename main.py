@@ -21,7 +21,7 @@ def webhook():
         if trigger in text:
             keyboard = {
                 "inline_keyboard": [
-                    [{"text": "Veja aqui como comprar $RHAP", "url": "https://rhapsody.criptocash.app/"}]
+                    [{"text": "Vá para a Loja", "url": "https://rhapsody.criptocash.app/"}]
                 ]
             }
             
