@@ -6,7 +6,7 @@ app = Flask(__name__)
 TOKEN = os.getenv("TOKEN")
 TELEGRAM_API = f"https://api.telegram.org/bot{TOKEN}"
 
-TRIGGERS = ["como comprar", "onde comprar", "quero comprar", "comprar rhap"]
+TRIGGERS = ["como comprar", "onde comprar", "quero comprar", "comprar rhap", "como compra"]
 
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
