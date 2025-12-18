@@ -17,7 +17,6 @@ TRIGGERS = ["como comprar", "onde comprar", "quero comprar", "comprar rhap", "co
 def send_welcome(chat_id, first_name):
     global last_welcome_message
 
-    # Tenta apagar a mensagem anterior
     if chat_id in last_welcome_message:
         try:
             requests.post(f"{TELEGRAM_API}/deleteMessage", json={
@@ -25,7 +24,7 @@ def send_welcome(chat_id, first_name):
                 "message_id": last_welcome_message[chat_id]
             })
         except:
-            pass  # Ignora falhas (ex: mensagem já apagada)
+            pass
 
     welcome_text = (
         f"🎮 Bem-vindo, {first_name}, à Comunidade Rhapsody!\n\n"
@@ -89,7 +88,9 @@ def send_faq(chat_id):
         "- Se preparar para o lançamento oficial (23/01/2026 na Bitcoin Brasil),\n"
         "- Acompanhar os cases de uso como a Musicplayce (apenas um exemplo de aplicação),\n"
         "- *Tornar-se um parceiro de divulgação*: se você tem um canal, comunidade ou audiência e quer promover o Rhapsody Protocol, inscreva-se no programa de afiliados e ganhe até *15% de comissão* sobre todas as vendas geradas por você!\n\n"
-       # Adiciona o botão do whitepaper
+       
+    )
+
     keyboard = {
         "inline_keyboard": [
             [{"text": "📘 Leia nosso Whitepaper", "url": "https://rhapsody-coin.gitbook.io/rhapsody-protocol/"}]
@@ -124,12 +125,10 @@ def send_social_media(chat_id):
 def webhook():
     data = request.get_json()
 
-    # Processar mensagens (texto ou novos membros)
     if data and "message" in data:
         message = data["message"]
         chat_id = message["chat"]["id"]
 
-        # Novo membro entrou
         if "new_chat_member" in message:
             new_member = message["new_chat_member"]
             if str(new_member.get("id", "")) == BOT_ID:
@@ -138,7 +137,6 @@ def webhook():
             send_welcome(chat_id, first_name)
             return "OK"
 
-        # Mensagem de texto
         if "text" in message:
             text = message["text"].lower().strip()
             first_name = message["from"].get("first_name", "amigo")
@@ -155,7 +153,6 @@ def webhook():
                     requests.post(f"{TELEGRAM_API}/sendMessage", json=reply)
                 return "OK"
 
-            # Gatilhos de compra
             for trigger in TRIGGERS:
                 if trigger in text:
                     keyboard = {"inline_keyboard": [[{"text": "🛒 Vá para a Loja", "url": "https://rhapsody.criptocash.app/"}]]}
@@ -169,7 +166,6 @@ def webhook():
                     break
             return "OK"
 
-    # Processar cliques em botões
     if data and "callback_query" in data:
         callback = data["callback_query"]
         chat_id = callback["message"]["chat"]["id"]
