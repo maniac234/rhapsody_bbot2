@@ -4,30 +4,14 @@ import os
 
 app = Flask(__name__)
 TOKEN = os.getenv("TOKEN")
-BOT_ID = os.getenv("BOT_ID", "")
+BOT_ID = os.getenv("BOT_ID", "")  # Opcional, mas recomendado
 TELEGRAM_API = f"https://api.telegram.org/bot{TOKEN}"
-
-# Armazena o último message_id de boas-vindas por chat_id (grupo ou privado)
-last_welcome_message = {}
 
 # Gatilhos existentes
 TRIGGERS = ["como comprar", "onde comprar", "quero comprar", "comprar rhap", "como compra"]
 
 # --- FUNÇÕES DE ENVIO ---
 def send_welcome(chat_id, first_name):
-    global last_welcome_message
-
-    # Tenta apagar a mensagem de boas-vindas anterior (se existir)
-    if chat_id in last_welcome_message:
-        try:
-            requests.post(f"{TELEGRAM_API}/deleteMessage", json={
-                "chat_id": chat_id,
-                "message_id": last_welcome_message[chat_id]
-            })
-        except:
-            pass  # Ignora erros (ex: mensagem já apagada)
-
-    # Texto de boas-vindas
     welcome_text = (
         f"🎮 Bem-vindo, {first_name}, à Comunidade Rhapsody!\n\n"
         "Este é o espaço oficial para quem acredita no poder da gamificação e das novas formas de engajar pessoas.\n\n"
@@ -40,7 +24,6 @@ def send_welcome(chat_id, first_name):
         "🌐 rhapsodycoin.com"
     )
 
-    # Teclado com botões
     keyboard = {
         "inline_keyboard": [
             [{"text": "🌐 Site oficial", "url": "https://www.rhapsodycoin.com"}],
@@ -52,7 +35,6 @@ def send_welcome(chat_id, first_name):
         ]
     }
 
-    # Envia a nova mensagem
     payload = {
         "chat_id": chat_id,
         "text": welcome_text,
@@ -60,14 +42,7 @@ def send_welcome(chat_id, first_name):
         "reply_markup": keyboard,
         "disable_web_page_preview": True
     }
-
-    response = requests.post(f"{TELEGRAM_API}/sendMessage", json=payload)
-
-    # Salva o ID da nova mensagem para possível deleção futura
-    if response.status_code == 200:
-        msg_data = response.json()
-        if msg_data.get("ok"):
-            last_welcome_message[chat_id] = msg_data["result"]["message_id"]
+    requests.post(f"{TELEGRAM_API}/sendMessage", json=payload)
 
 
 def send_faq(chat_id):
@@ -111,7 +86,8 @@ def send_social_media(chat_id):
         "text": "📱 *Redes Sociais*:\n\n"
                 "🔗 [Twitter/X](https://twitter.com/rhapsodycoin)\n"
                 "📸 [Instagram](https://instagram.com/rhapsodycoin)\n"
-                "💼 [LinkedIn](https://linkedin.com/company/rhapsody-coin)\n"
+                "💼 [LinkedIn](https://linkedin.com/company/rhapsody-protocol)\n"
+                "🎥 [YouTube](https://youtube.com/@rhapsodyprotocol)\n"
                 "💬 [Telegram Oficial](https://t.me/rhapsodycoin)",
         "parse_mode": "Markdown"
     }
@@ -123,29 +99,33 @@ def send_social_media(chat_id):
 def webhook():
     data = request.get_json()
 
-    # Mensagens (texto ou novos membros)
-    if "message" in 
+    # Eventos de mensagem (texto ou novo membro)
+    if "message" in data:
         message = data["message"]
         chat_id = message["chat"]["id"]
 
-        # Novo membro entrou
+        # Caso: novo membro entrou no grupo
         if "new_chat_member" in message:
             new_member = message["new_chat_member"]
+            # Evita responder a si mesmo
             if str(new_member.get("id")) == BOT_ID:
-                return "OK"  # Ignora entrada do próprio bot
+                return "OK"
             first_name = new_member.get("first_name", "amigo")
             send_welcome(chat_id, first_name)
             return "OK"
 
-        # Mensagem de texto normal
+        # Caso: mensagem de texto normal
         if "text" in message:
             text = message["text"].lower().strip()
             first_name = message["from"].get("first_name", "amigo")
 
+            # Comando /start
             if text == "/start":
+                # Só envia boas-vindas completa em privado
                 if message["chat"]["type"] == "private":
                     send_welcome(chat_id, first_name)
                 else:
+                    # Em grupo, responde de forma leve
                     reply = {
                         "chat_id": chat_id,
                         "text": "👋 Olá! Para ver todas as opções, envie /start em uma conversa privada comigo.",
@@ -168,12 +148,13 @@ def webhook():
                     break
             return "OK"
 
-    # Cliques nos botões
-    if "callback_query" in 
+    # Eventos de clique em botões
+    if "callback_query" in data:
         callback = data["callback_query"]
         chat_id = callback["message"]["chat"]["id"]
         data_value = callback["data"]
 
+        # Confirma o clique
         requests.post(f"{TELEGRAM_API}/answerCallbackQuery", json={"callback_query_id": callback["id"]})
 
         if data_value == "faq":
