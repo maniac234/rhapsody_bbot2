@@ -88,9 +88,8 @@ def send_faq(chat_id):
         "- Participar da pré-venda (até 20/01/2026 em CriptoCash),\n"
         "- Se preparar para o lançamento oficial (23/01/2026 na Bitcoin Brasil),\n"
         "- Acompanhar os cases de uso como a Musicplayce (apenas um exemplo de aplicação),\n"
-        "- Se inscrever nas listas de espera para futuras integrações B2B do protocolo.\n\n"
+        "- *Tornar-se um parceiro de divulgação*: se você tem um canal, comunidade ou audiência e quer promover o Rhapsody Protocol, inscreva-se no programa de afiliados e ganhe até *15% de comissão* sobre todas as vendas geradas por você!\n\n"
         "*Terá recompensas para os participantes da pré-venda?*\n"
-        "Sim! Os participantes da pré-venda terão acesso antecipado, possíveis bonificações de alocação, e poderão ser os primeiros a utilizar o token em aplicações reais do ecossistema, como o Gacha Harmônico e o marketplace de NFTs."
     )
     payload = {
         "chat_id": chat_id,
