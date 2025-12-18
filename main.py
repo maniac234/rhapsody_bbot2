@@ -87,8 +87,7 @@ def send_social_media(chat_id):
         "text": "📱 *Redes Sociais*:\n\n"
                 "🔗 [Twitter/X](https://twitter.com/rhapsodycoin)\n"
                 "📸 [Instagram](https://instagram.com/rhapsodycoin)\n"
-                "💼 [LinkedIn](https://linkedin.com/company/rhapsody-protocol)\n"
-                "🎥 [YouTube](https://youtube.com/@rhapsodyprotocol)\n"
+                "💼 [LinkedIn](https://linkedin.com/company/rhapsodycoin)\n"
                 "💬 [Telegram Oficial](https://t.me/rhapsodycoin)",
         "parse_mode": "Markdown",
         "disable_web_page_preview": False
