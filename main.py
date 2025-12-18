@@ -89,7 +89,6 @@ def send_faq(chat_id):
         "- Se preparar para o lançamento oficial (23/01/2026 na Bitcoin Brasil),\n"
         "- Acompanhar os cases de uso como a Musicplayce (apenas um exemplo de aplicação),\n"
         "- *Tornar-se um parceiro de divulgação*: se você tem um canal, comunidade ou audiência e quer promover o Rhapsody Protocol, inscreva-se no programa de afiliados e ganhe até *15% de comissão* sobre todas as vendas geradas por você!\n\n"
-        "*Terá recompensas para os participantes da pré-venda?*\n"
     )
     payload = {
         "chat_id": chat_id,
