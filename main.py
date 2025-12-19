@@ -35,7 +35,6 @@ def send_welcome(chat_id, first_name):
         "✅ Participar de eventos, ativações e conversas sobre o futuro digital\n"
         "✅ Conectar-se com outras pessoas que estão construindo junto\n\n"
         "🚀 Rhapsody Protocol — A nova camada do engajamento digital.\n\n"
-        "🌐 rhapsodycoin.com"
     )
 
     keyboard = {
@@ -111,8 +110,8 @@ def send_social_media(chat_id):
     payload = {
         "chat_id": chat_id,
         "text": "📱 *Redes Sociais*:\n\n"
-                "🔗 [Twitter/X](https://twitter.com/rhapsodycoin)\n"
                 "📸 [Instagram](https://instagram.com/rhapsodycoin)\n"
+                "🔗 [Twitter/X](https://twitter.com/rhapsodycoin)\n"
                 "💼 [LinkedIn](https://linkedin.com/company/rhapsody-coin)\n"
                 "💬 [Telegram Oficial](https://t.me/rhapsodycoin)",
         "parse_mode": "Markdown"
