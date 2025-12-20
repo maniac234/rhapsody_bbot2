@@ -1,22 +1,55 @@
 from flask import Flask, request
 import requests
 import os
+import threading
+import time
 
 app = Flask(__name__)
 TOKEN = os.getenv("TOKEN")
 BOT_ID = os.getenv("BOT_ID", "")
 TELEGRAM_API = f"https://api.telegram.org/bot{TOKEN}"
 
-# Armazena o último message_id de boas-vindas por chat_id
+# Armazena última mensagem de boas-vindas por chat_id
 last_welcome_message = {}
 
-# Gatilhos existentes
+# Armazena usuários aguardando confirmação: {user_id: chat_id}
+pending_users = {}
+
+# Gatilhos de compra
 TRIGGERS = ["como comprar", "onde comprar", "quero comprar", "comprar rhap", "como compra"]
 
-# --- FUNÇÕES DE ENVIO ---
+# --- FUNÇÕES ---
+def remove_user_if_pending(chat_id, user_id):
+    """Remove usuário se não confirmar em 60s"""
+    time.sleep(60)
+    if user_id in pending_users:
+        try:
+            requests.post(f"{TELEGRAM_API}/banChatMember", json={"chat_id": chat_id, "user_id": user_id})
+            time.sleep(1)
+            requests.post(f"{TELEGRAM_API}/unbanChatMember", json={"chat_id": chat_id, "user_id": user_id})
+        except:
+            pass
+        pending_users.pop(user_id, None)
+
+def send_captcha(chat_id, user_id, first_name):
+    """Envia CAPTCHA no grupo"""
+    message = f"👋 Olá, {first_name}! Para confirmar que você é humano, clique no botão abaixo:"
+    keyboard = {"inline_keyboard": [[{"text": "✅ Sou humano", "callback_data": f"captcha_{user_id}"}]]}
+    payload = {"chat_id": chat_id, "text": message, "reply_markup": keyboard}
+    response = requests.post(f"{TELEGRAM_API}/sendMessage", json=payload)
+    
+    if response.status_code == 200:
+        msg_data = response.json()
+        if msg_data.get("ok"):
+            pending_users[user_id] = chat_id
+            thread = threading.Thread(target=remove_user_if_pending, args=(chat_id, user_id))
+            thread.daemon = True
+            thread.start()
+
 def send_welcome(chat_id, first_name):
     global last_welcome_message
 
+    # Apaga mensagem anterior
     if chat_id in last_welcome_message:
         try:
             requests.post(f"{TELEGRAM_API}/deleteMessage", json={
@@ -26,6 +59,7 @@ def send_welcome(chat_id, first_name):
         except:
             pass
 
+    # Mensagem de boas-vindas
     welcome_text = (
         f"🎮 Bem-vindo, {first_name}, à Comunidade Rhapsody!\n\n"
         "Este é o espaço oficial para quem acredita no poder da gamificação e das novas formas de engajar pessoas.\n\n"
@@ -35,6 +69,7 @@ def send_welcome(chat_id, first_name):
         "✅ Participar de eventos, ativações e conversas sobre o futuro digital\n"
         "✅ Conectar-se com outras pessoas que estão construindo junto\n\n"
         "🚀 Rhapsody Protocol — A nova camada do engajamento digital.\n\n"
+        "🌐 rhapsodycoin.com"
     )
 
     keyboard = {
@@ -57,12 +92,10 @@ def send_welcome(chat_id, first_name):
     }
 
     response = requests.post(f"{TELEGRAM_API}/sendMessage", json=payload)
-
     if response.status_code == 200:
         msg_data = response.json()
         if msg_data.get("ok"):
             last_welcome_message[chat_id] = msg_data["result"]["message_id"]
-
 
 def send_faq(chat_id):
     faq_text = (
@@ -87,7 +120,8 @@ def send_faq(chat_id):
         "- Se preparar para o lançamento oficial (23/01/2026 na Bitcoin Brasil),\n"
         "- Acompanhar os cases de uso como a Musicplayce (apenas um exemplo de aplicação),\n"
         "- *Tornar-se um parceiro de divulgação*: se você tem um canal, comunidade ou audiência e quer promover o Rhapsody Protocol, inscreva-se no programa de afiliados e ganhe até *15% de comissão* sobre todas as vendas geradas por você!\n\n"
-       
+        "*Terá recompensas para os participantes da pré-venda?*\n"
+        "Sim! Os participantes da pré-venda terão acesso antecipado, possíveis bonificações de alocação, e poderão ser os primeiros a utilizar o token em aplicações reais do ecossistema, como o Gacha Harmônico e o marketplace de NFTs."
     )
 
     keyboard = {
@@ -105,21 +139,20 @@ def send_faq(chat_id):
     }
     requests.post(f"{TELEGRAM_API}/sendMessage", json=payload)
 
-
 def send_social_media(chat_id):
     payload = {
         "chat_id": chat_id,
         "text": "📱 *Redes Sociais*:\n\n"
-                "📸 [Instagram](https://instagram.com/rhapsodycoin)\n"
                 "🔗 [Twitter/X](https://twitter.com/rhapsodycoin)\n"
-                "💼 [LinkedIn](https://linkedin.com/company/rhapsody-coin)\n"
+                "📸 [Instagram](https://instagram.com/rhapsodycoin)\n"
+                "💼 [LinkedIn](https://linkedin.com/company/rhapsody-protocol)\n"
+                "🎥 [YouTube](https://youtube.com/@rhapsodyprotocol)\n"
                 "💬 [Telegram Oficial](https://t.me/rhapsodycoin)",
         "parse_mode": "Markdown"
     }
     requests.post(f"{TELEGRAM_API}/sendMessage", json=payload)
 
-
-# --- WEBHOOK PRINCIPAL ---
+# --- WEBHOOK ---
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
     data = request.get_json()
@@ -128,14 +161,17 @@ def webhook():
         message = data["message"]
         chat_id = message["chat"]["id"]
 
+        # Novo membro → CAPTCHA
         if "new_chat_member" in message:
             new_member = message["new_chat_member"]
-            if str(new_member.get("id", "")) == BOT_ID:
+            user_id = new_member.get("id")
+            if str(user_id) == BOT_ID:
                 return "OK"
             first_name = new_member.get("first_name", "amigo")
-            send_welcome(chat_id, first_name)
+            send_captcha(chat_id, user_id, first_name)
             return "OK"
 
+        # Mensagens de texto
         if "text" in message:
             text = message["text"].lower().strip()
             first_name = message["from"].get("first_name", "amigo")
@@ -152,6 +188,7 @@ def webhook():
                     requests.post(f"{TELEGRAM_API}/sendMessage", json=reply)
                 return "OK"
 
+            # Gatilhos de compra
             for trigger in TRIGGERS:
                 if trigger in text:
                     keyboard = {"inline_keyboard": [[{"text": "🛒 Vá para a Loja", "url": "https://rhapsody.criptocash.app/"}]]}
@@ -165,13 +202,44 @@ def webhook():
                     break
             return "OK"
 
+    # Callbacks (botões)
     if data and "callback_query" in data:
         callback = data["callback_query"]
         chat_id = callback["message"]["chat"]["id"]
         data_value = callback["data"]
+        from_user_id = callback["from"]["id"]
 
+        # CAPTCHA
+        if data_value.startswith("captcha_"):
+            try:
+                target_user_id = int(data_value.split("_", 1)[1])
+                if from_user_id == target_user_id and target_user_id in pending_users:
+                    pending_users.pop(target_user_id, None)
+                    # Apaga CAPTCHA
+                    requests.post(f"{TELEGRAM_API}/deleteMessage", json={
+                        "chat_id": chat_id,
+                        "message_id": callback["message"]["message_id"]
+                    })
+                    # Envia boas-vindas
+                    first_name = callback["from"].get("first_name", "amigo")
+                    send_welcome(chat_id, first_name)
+                    requests.post(f"{TELEGRAM_API}/answerCallbackQuery", json={
+                        "callback_query_id": callback["id"],
+                        "text": "✅ Bem-vindo à Comunidade Rhapsody!",
+                        "show_alert": False
+                    })
+                else:
+                    requests.post(f"{TELEGRAM_API}/answerCallbackQuery", json={
+                        "callback_query_id": callback["id"],
+                        "text": "❌ Este CAPTCHA não é para você.",
+                        "show_alert": True
+                    })
+            except:
+                pass
+            return "OK"
+
+        # Outros botões
         requests.post(f"{TELEGRAM_API}/answerCallbackQuery", json={"callback_query_id": callback["id"]})
-
         if data_value == "faq":
             send_faq(chat_id)
         elif data_value == "redes_sociais":
@@ -179,7 +247,6 @@ def webhook():
         return "OK"
 
     return "OK"
-
 
 # --- ROTAS AUXILIARES ---
 @app.route("/")
