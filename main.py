@@ -69,7 +69,6 @@ def send_welcome(chat_id, first_name):
         "✅ Participar de eventos, ativações e conversas sobre o futuro digital\n"
         "✅ Conectar-se com outras pessoas que estão construindo junto\n\n"
         "🚀 Rhapsody Protocol — A nova camada do engajamento digital.\n\n"
-        "🌐 rhapsodycoin.com"
     )
 
     keyboard = {
@@ -120,8 +119,7 @@ def send_faq(chat_id):
         "- Se preparar para o lançamento oficial (23/01/2026 na Bitcoin Brasil),\n"
         "- Acompanhar os cases de uso como a Musicplayce (apenas um exemplo de aplicação),\n"
         "- *Tornar-se um parceiro de divulgação*: se você tem um canal, comunidade ou audiência e quer promover o Rhapsody Protocol, inscreva-se no programa de afiliados e ganhe até *15% de comissão* sobre todas as vendas geradas por você!\n\n"
-        "*Terá recompensas para os participantes da pré-venda?*\n"
-        "Sim! Os participantes da pré-venda terão acesso antecipado, possíveis bonificações de alocação, e poderão ser os primeiros a utilizar o token em aplicações reais do ecossistema, como o Gacha Harmônico e o marketplace de NFTs."
+        
     )
 
     keyboard = {
@@ -143,10 +141,9 @@ def send_social_media(chat_id):
     payload = {
         "chat_id": chat_id,
         "text": "📱 *Redes Sociais*:\n\n"
-                "🔗 [Twitter/X](https://twitter.com/rhapsodycoin)\n"
                 "📸 [Instagram](https://instagram.com/rhapsodycoin)\n"
-                "💼 [LinkedIn](https://linkedin.com/company/rhapsody-protocol)\n"
-                "🎥 [YouTube](https://youtube.com/@rhapsodyprotocol)\n"
+                "🔗 [Twitter/X](https://twitter.com/rhapsodycoin)\n"
+                "💼 [LinkedIn](https://linkedin.com/company/rhapsody-coin)\n"
                 "💬 [Telegram Oficial](https://t.me/rhapsodycoin)",
         "parse_mode": "Markdown"
     }
