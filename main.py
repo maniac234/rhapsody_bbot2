@@ -12,20 +12,26 @@ TELEGRAM_API = f"https://api.telegram.org/bot{TOKEN}"
 # Armazena última mensagem de boas-vindas por chat_id
 last_welcome_message = {}
 
-# Armazena usuários aguardando confirmação: {user_id: chat_id}
+# Armazena usuários aguardando confirmação: {user_id: {"chat_id": ..., "message_id": ...}}
 pending_users = {}
 
 # Gatilhos de compra
 TRIGGERS = ["como comprar", "onde comprar", "quero comprar", "comprar rhap", "como compra"]
 
 # --- FUNÇÕES ---
-def remove_user_if_pending(chat_id, user_id):
-    """Remove usuário se não confirmar em 60s"""
-    time.sleep(60)
+def remove_user_if_pending(chat_id, user_id, message_id):
+    """Remove usuário se não confirmar em 40s e apaga a mensagem do CAPTCHA"""
+    time.sleep(40)
     if user_id in pending_users:
         try:
+            # Apagar a mensagem do CAPTCHA
+            requests.post(f"{TELEGRAM_API}/deleteMessage", json={
+                "chat_id": chat_id,
+                "message_id": message_id
+            })
+            # Expulsar o usuário do grupo (kick via ban + unban)
             requests.post(f"{TELEGRAM_API}/banChatMember", json={"chat_id": chat_id, "user_id": user_id})
-            time.sleep(1)
+            time.sleep(0.5)
             requests.post(f"{TELEGRAM_API}/unbanChatMember", json={"chat_id": chat_id, "user_id": user_id})
         except:
             pass
@@ -41,8 +47,9 @@ def send_captcha(chat_id, user_id, first_name):
     if response.status_code == 200:
         msg_data = response.json()
         if msg_data.get("ok"):
-            pending_users[user_id] = chat_id
-            thread = threading.Thread(target=remove_user_if_pending, args=(chat_id, user_id))
+            msg_id = msg_data["result"]["message_id"]
+            pending_users[user_id] = {"chat_id": chat_id, "message_id": msg_id}
+            thread = threading.Thread(target=remove_user_if_pending, args=(chat_id, user_id, msg_id))
             thread.daemon = True
             thread.start()
 
@@ -59,7 +66,6 @@ def send_welcome(chat_id, first_name):
         except:
             pass
 
-    # Mensagem de boas-vindas
     welcome_text = (
         f"🎮 Bem-vindo, {first_name}, à Comunidade Rhapsody!\n\n"
         "Este é o espaço oficial para quem acredita no poder da gamificação e das novas formas de engajar pessoas.\n\n"
@@ -119,7 +125,6 @@ def send_faq(chat_id):
         "- Se preparar para o lançamento oficial (23/01/2026 na Bitcoin Brasil),\n"
         "- Acompanhar os cases de uso como a Musicplayce (apenas um exemplo de aplicação),\n"
         "- *Tornar-se um parceiro de divulgação*: se você tem um canal, comunidade ou audiência e quer promover o Rhapsody Protocol, inscreva-se no programa de afiliados e ganhe até *15% de comissão* sobre todas as vendas geradas por você!\n\n"
-        
     )
 
     keyboard = {
@@ -210,13 +215,15 @@ def webhook():
         if data_value.startswith("captcha_"):
             try:
                 target_user_id = int(data_value.split("_", 1)[1])
-                if from_user_id == target_user_id and target_user_id in pending_users:
-                    pending_users.pop(target_user_id, None)
-                    # Apaga CAPTCHA
+                user_data = pending_users.get(target_user_id)
+                if from_user_id == target_user_id and user_data:
+                    # Apaga o CAPTCHA
                     requests.post(f"{TELEGRAM_API}/deleteMessage", json={
                         "chat_id": chat_id,
                         "message_id": callback["message"]["message_id"]
                     })
+                    # Remove da lista pendente
+                    pending_users.pop(target_user_id, None)
                     # Envia boas-vindas
                     first_name = callback["from"].get("first_name", "amigo")
                     send_welcome(chat_id, first_name)
