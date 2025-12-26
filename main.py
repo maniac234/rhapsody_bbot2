@@ -1,62 +1,23 @@
+
 from flask import Flask, request
 import requests
 import os
-import threading
-import time
 
 app = Flask(__name__)
 TOKEN = os.getenv("TOKEN")
-BOT_ID = os.getenv("BOT_ID", "")
 TELEGRAM_API = f"https://api.telegram.org/bot{TOKEN}"
 
-# Armazena última mensagem de boas-vindas por chat_id
+# Armazena última mensagem de boas-vindas por chat_id (opcional, pode ser removido se não quiser apagar anterior)
 last_welcome_message = {}
-
-# Armazena usuários aguardando confirmação: {user_id: {"chat_id": ..., "message_id": ...}}
-pending_users = {}
 
 # Gatilhos de compra
 TRIGGERS = ["como comprar", "onde comprar", "quero comprar", "comprar rhap", "como compra"]
 
 # --- FUNÇÕES ---
-def remove_user_if_pending(chat_id, user_id, message_id):
-    """Remove usuário se não confirmar em 40s e apaga a mensagem do CAPTCHA"""
-    time.sleep(40)
-    if user_id in pending_users:
-        try:
-            # Apagar a mensagem do CAPTCHA
-            requests.post(f"{TELEGRAM_API}/deleteMessage", json={
-                "chat_id": chat_id,
-                "message_id": message_id
-            })
-            # Expulsar o usuário do grupo (kick via ban + unban)
-            requests.post(f"{TELEGRAM_API}/banChatMember", json={"chat_id": chat_id, "user_id": user_id})
-            time.sleep(0.5)
-            requests.post(f"{TELEGRAM_API}/unbanChatMember", json={"chat_id": chat_id, "user_id": user_id})
-        except:
-            pass
-        pending_users.pop(user_id, None)
-
-def send_captcha(chat_id, user_id, first_name):
-    """Envia CAPTCHA no grupo"""
-    message = f"👋 Olá, {first_name}! Para confirmar que você é humano, clique no botão abaixo:"
-    keyboard = {"inline_keyboard": [[{"text": "✅ Sou humano", "callback_data": f"captcha_{user_id}"}]]}
-    payload = {"chat_id": chat_id, "text": message, "reply_markup": keyboard}
-    response = requests.post(f"{TELEGRAM_API}/sendMessage", json=payload)
-    
-    if response.status_code == 200:
-        msg_data = response.json()
-        if msg_data.get("ok"):
-            msg_id = msg_data["result"]["message_id"]
-            pending_users[user_id] = {"chat_id": chat_id, "message_id": msg_id}
-            thread = threading.Thread(target=remove_user_if_pending, args=(chat_id, user_id, msg_id))
-            thread.daemon = True
-            thread.start()
-
 def send_welcome(chat_id, first_name):
     global last_welcome_message
 
-    # Apaga mensagem anterior
+    # Opcional: apaga mensagem de boas-vindas anterior
     if chat_id in last_welcome_message:
         try:
             requests.post(f"{TELEGRAM_API}/deleteMessage", json={
@@ -91,7 +52,6 @@ def send_welcome(chat_id, first_name):
     payload = {
         "chat_id": chat_id,
         "text": welcome_text,
-        "parse_mode": "Markdown",
         "reply_markup": keyboard,
         "disable_web_page_preview": True
     }
@@ -163,14 +123,15 @@ def webhook():
         message = data["message"]
         chat_id = message["chat"]["id"]
 
-        # Novo membro → CAPTCHA
+        # Novo membro → enviar boas-vindas
         if "new_chat_member" in message:
             new_member = message["new_chat_member"]
             user_id = new_member.get("id")
-            if str(user_id) == BOT_ID:
+            # Evita que o bot se dê boas-vindas a si mesmo
+            if str(user_id) == os.getenv("BOT_ID", ""):
                 return "OK"
             first_name = new_member.get("first_name", "amigo")
-            send_captcha(chat_id, user_id, first_name)
+            send_welcome(chat_id, first_name)
             return "OK"
 
         # Mensagens de texto
@@ -209,40 +170,7 @@ def webhook():
         callback = data["callback_query"]
         chat_id = callback["message"]["chat"]["id"]
         data_value = callback["data"]
-        from_user_id = callback["from"]["id"]
 
-        # CAPTCHA
-        if data_value.startswith("captcha_"):
-            try:
-                target_user_id = int(data_value.split("_", 1)[1])
-                user_data = pending_users.get(target_user_id)
-                if from_user_id == target_user_id and user_data:
-                    # Apaga o CAPTCHA
-                    requests.post(f"{TELEGRAM_API}/deleteMessage", json={
-                        "chat_id": chat_id,
-                        "message_id": callback["message"]["message_id"]
-                    })
-                    # Remove da lista pendente
-                    pending_users.pop(target_user_id, None)
-                    # Envia boas-vindas
-                    first_name = callback["from"].get("first_name", "amigo")
-                    send_welcome(chat_id, first_name)
-                    requests.post(f"{TELEGRAM_API}/answerCallbackQuery", json={
-                        "callback_query_id": callback["id"],
-                        "text": "✅ Bem-vindo à Comunidade Rhapsody!",
-                        "show_alert": False
-                    })
-                else:
-                    requests.post(f"{TELEGRAM_API}/answerCallbackQuery", json={
-                        "callback_query_id": callback["id"],
-                        "text": "❌ Este CAPTCHA não é para você.",
-                        "show_alert": True
-                    })
-            except:
-                pass
-            return "OK"
-
-        # Outros botões
         requests.post(f"{TELEGRAM_API}/answerCallbackQuery", json={"callback_query_id": callback["id"]})
         if data_value == "faq":
             send_faq(chat_id)
