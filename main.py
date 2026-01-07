@@ -106,7 +106,7 @@ def send_faq(chat_id):
     faq_text = (
         "📌 *Aqui está a lista de perguntas frequentes atualizada sobre o Rhapsody Protocol*\n\n"
         "*Em que situação está o projeto atualmente?*\n"
-        "O Rhapsody Protocol está em fase de pré-venda, que vai até 20 de janeiro de 2026 na plataforma CriptoCash. O lançamento oficial do token $RHAP ocorrerá em 23 de janeiro de 2026 na Bitcoin Brasil (BBT). A Musicplayce é apenas o primeiro case de uso dentro do protocolo — uma demonstração prática de como empresas podem integrar gamificação, NFTs e recompensas com RHAP.\n\n"
+        "O Rhapsody Protocol está em fase de pré-venda, que vai até 20 de janeiro de 2026 na plataforma CriptoCash. O lançamento oficial do token $RHAP ocorrerá em 23 de janeiro de 2026 na Brasil Bitcoin (BBT). A Musicplayce é apenas o primeiro case de uso dentro do protocolo — uma demonstração prática de como empresas podem integrar gamificação, NFTs e recompensas com RHAP.\n\n"
         "*O token $RHAP já foi lançado?*\n"
         "Não, o token $RHAP ainda não foi lançado publicamente. Ele será disponibilizado oficialmente em 23 de janeiro de 2026 na Bitcoin Brasil, após encerrar a pré-venda em 20 de janeiro na CriptoCash.\n\n"
         "*Em qual rede o projeto e o token serão lançados?*\n"
